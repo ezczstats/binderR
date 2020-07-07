@@ -9,8 +9,8 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-setwd("/Users/mczahor/Desktop/")
-nfl <- read.csv("nflpbp.csv")
+library(ggplot2)
+library(dplyr)
 sample(1:20,20,replace=TRUE)
 
 
@@ -31,25 +31,6 @@ ggplot(data=batting, aes(x=Season, y=Average, group=Player)) +
   geom_point()+theme_bw()+ggtitle("WELCOME TO DAY 1!")
 ```
 
-Hey everyone,
-
-If you are receiving this message you are in the summer or fall Intro to Statistics Boot Camp with me. Atttached is a check-in video to introduce you to the interface we will be using during your session.
-
-Here is a reminder video from RStudio to about R/RStudio installation. Please make sure BOTH are installed before your session starts.
-  https://learnr-examples.shinyapps.io/ex-setup-r/#section-welcome
-    
-Note: I mention 1-1 resume building sessions that I will be conducting weekly. More to come on this, but I wanted to let you know that it's one of the many exciting extras that come with the boot camp. We will sit down and talk about building a strong portfolio for potential employers (both sports and non-sports). This will include: properly storing source code, building your own apps, creating blogs, and more. These sessions will be 30 minutes per student each week, for a total of 2 hours of 1-1 resume/portfolio building.
-
-Also, I heard some previous video links didn't open in one of my welcome ppt slides. Not sure what happened, here they are!
-
-https://www.youtube.com/watch?v=9rOKGKhQe8U&t=0s
-https://www.youtube.com/watch?v=vjzKKQhI7rM
-https://www.youtube.com/watch?v=oUvvfHkXyOA
-https://www.youtube.com/watch?v=mq3v8fN1x8k
-
-Have a wonderful evening.
-
-Michael
 
 **Installing a Package in R**
 
@@ -283,13 +264,6 @@ plot(tbrady$passYards,tbrady$passerRating, #variables
 ```
 
 
----
-title: "Slide Set 2 eZcZ "
-author: "M.S.Czahor"
-date: "4/8/2020"
-Slide Set 2
----
-
 ```{r reload data, include=FALSE}
 next_gen <- read.csv("next_gen.csv") 
 #next gen data set (scraped)
@@ -515,7 +489,7 @@ hist(next_gen$attempts)
 ###SUBMOD4!###
 
 ```{r datawrangleintro, include=FALSE}
-setwd("/Users/mczahor/Desktop/Course/Summer Bootcamp/Intro to Stat Sessions/nhlgamedata")      #this will not be the same for you!
+#setwd("/Users/mczahor/Desktop/Course/Summer Bootcamp/Intro to Stat Sessions/nhlgamedata")      #this will not be the same for you!
 game <- read.csv("game.csv")  #game data
 skate <- read.csv("game_skater_stats.csv") #skate-ice data
 player <- read.csv("player_info.csv") #player info
