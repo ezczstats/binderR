@@ -2,7 +2,7 @@
 
 Jupyter+R: [![Binder](http://mybinder.org/badge_logo.svg)](http://mybinder.org/v2/gh/binder-examples/r/master?filepath=index.ipynb)
 
-RStudio: [![Binder](http://mybinder.org/badge_logo.svg)](https://hub.gke.mybinder.org/user/ezczstat-binderr-dqtugr8v/tree?urlpath=rstudio)
+RStudio: [![Binder](http://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ezczstat/binderR/60d8b62592f636eb935eec8a3cf11e4f0d73e7fd?urlpath=rstudio)
 
 RShiny: [![Binder](http://mybinder.org/badge_logo.svg)](http://mybinder.org/v2/gh/binder-examples/r/master?urlpath=shiny/bus-dashboard/)
 
