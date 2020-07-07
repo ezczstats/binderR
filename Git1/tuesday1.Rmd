@@ -1,0 +1,556 @@
+---
+title: "tuesday1"
+author: "M.S.Czahor"
+date: "7/3/2020"
+ou---
+title: "Slide Set 1 eZcZ "
+author: "M.S.Czahor"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+setwd("/Users/mczahor/Desktop/")
+nfl <- read.csv("nflpbp.csv")
+sample(1:20,20,replace=TRUE)
+
+
+
+batting <- data.frame(rep(NA,15),rep(NA,15),rep(NA,15))
+
+colnames(batting) <- c("Season","Average","Player")
+batting$Season <- rep(c(2020,2021,2022,2023,2024),3)
+batting$Average <- c(.225,.227,.229,.241,.240,
+                     .300,.290,.282,.281,.271,
+                     .111,.122,.122,.125,.120)
+batting$Player <- c(rep("Player 1",5),
+                    rep("Player 2",5),
+                    rep("Player 3",5))
+
+ggplot(data=batting, aes(x=Season, y=Average, group=Player)) +
+  geom_line(aes(linetype=Player,color=Player),lwd=1.2)+
+  geom_point()+theme_bw()+ggtitle("WELCOME TO DAY 1!")
+```
+
+Hey everyone,
+
+If you are receiving this message you are in the summer or fall Intro to Statistics Boot Camp with me. Atttached is a check-in video to introduce you to the interface we will be using during your session.
+
+Here is a reminder video from RStudio to about R/RStudio installation. Please make sure BOTH are installed before your session starts.
+  https://learnr-examples.shinyapps.io/ex-setup-r/#section-welcome
+    
+Note: I mention 1-1 resume building sessions that I will be conducting weekly. More to come on this, but I wanted to let you know that it's one of the many exciting extras that come with the boot camp. We will sit down and talk about building a strong portfolio for potential employers (both sports and non-sports). This will include: properly storing source code, building your own apps, creating blogs, and more. These sessions will be 30 minutes per student each week, for a total of 2 hours of 1-1 resume/portfolio building.
+
+Also, I heard some previous video links didn't open in one of my welcome ppt slides. Not sure what happened, here they are!
+
+https://www.youtube.com/watch?v=9rOKGKhQe8U&t=0s
+https://www.youtube.com/watch?v=vjzKKQhI7rM
+https://www.youtube.com/watch?v=oUvvfHkXyOA
+https://www.youtube.com/watch?v=mq3v8fN1x8k
+
+Have a wonderful evening.
+
+Michael
+
+**Installing a Package in R**
+
+```{r install, include=FALSE}
+install.packages("devtools") #notice the QUOTES
+
+library(devtools)  #NO Quotes!
+```
+
+**Simple Operations**
+
+```{r simpleops, include=FALSE}
+55+3        #Addition
+18*4        #Multiplication
+77^10       #Exponents
+sqrt(144)   #Square roots
+log(400)    #Logarithms 
+12/2        #Division
+55%%12      #Modulus
+55%/%12     #Integer Division
+```
+
+**Variable Assignment**
+
+```{r variableassign, include=FALSE}
+ezcz_age <- 29   #Closing in on 30
+ezcz_age         #CAPS MATTER --> eZcz_age won't run
+
+ten_years <- 10 + ezcz_age  #In 10 years I will be....
+ten_years
+```
+
+**Excercise 1: Assigning  Variables**
+
+```{r exercise vassign, include=FALSE}
+
+sals_now <- c(3000000,
+              4000000,
+              5000000,
+              6000000,
+              7000000)
+
+sals_future <- sals_now*1.06
+sals_future
+```
+
+**Data Structure**
+
+```{r Data Structures, include=FALSE}
+
+this_is_logical <- TRUE #Logical
+this_is_numeric <- as.numeric(14.5) #numeric
+this_is_integer <- as.integer(2)    #integer
+this_is_character <- as.character("MLB") #character
+this_is_factor <- as.factor("MLB") #factor
+
+#NOTE there was NO need to put as.( ) around some of these, this is merely to guarantee that the structure is correct.
+
+#Check your structure
+str(this_is_integer)
+#class(this_is_integer)
+```
+
+**Logical**
+
+```{r logic, include=FALSE}
+
+10 > 4                            #Greater than
+10 > 10                           #Less than
+10 >=10                           #Greater than or equal to
+12 < 12                           #Less than 
+12 <=12                           #Less than or equal to
+(12 < 16) && (14>=14)             #AND
+(122 < 16) || (14 > 44)           #OR
+18!=18                            #Not Equal to
+
+"Tom Brady" == "Jameis Winston"   #Equal to
+"Tom Brady" > "Jameis Winston"    #Greater than (alpha_order)
+
+
+```
+
+
+** Vectors I**
+```{r vectors1, include=FALSE}
+
+rush_yds <- c(80,122,34,38,77)  #Rushing yards LJ 
+pass_yds <- c(150,224,99,334,302) #Passing Yards
+
+rush_yds+pass_yds #230 346 133 372 379
+
+rush_yds+10       # 90 132  44  48  87
+
+pass_yds > 100    #TRUE  TRUE FALSE  TRUE  TRUE
+
+pass_yds[1]       #150
+pass_yds[22]      #NA  Not Available
+
+length(pass_yds)  #5
+
+sum(rush_yds)    #351
+```
+
+** Vectors II**
+```{r vectors2, include=FALSE}
+
+seq(100,200,20) #100 120 140 160 180 200
+seq(0,.5,.1)    #0.0 0.1 0.2 0.3 0.4 0.5
+
+var_1 <- seq(1,100,1)
+var_2 <- var_1^2
+
+plot(var_1,var_2,xlab="var_1",ylab="var_2",main="Sequences")
+
+which(var_1 < 3)   #1 2  --> row numbers
+
+var_1[which(var_1 < 3)] #1 2 --> values
+```
+
+**Excercise 2: Vector Assignment**
+
+```{r exercise vassign, include=FALSE}
+
+goal_cg <- c(0,1,3,2,0,1)
+
+goal_cg[4] #2 --> Game 4 had 2 goals
+
+which(goal_cg>=1) 
+#2 3 4 6  -->Games 2,3,4,6 had 1+ goals
+
+```
+
+**More on Packages**
+
+```{r package extras, include=FALSE}
+library(help=ggplot2)
+#search()
+ls(package:ggplot2)[50:55] 
+#"draw_key_abline"   "draw_key_blank"   "draw_key_boxplot"  "draw_key_crossbar""draw_key_dotplot"  "draw_key_label"
+package.skeleton()
+#Creating directories ...
+#Creating DESCRIPTION ...
+#Creating NAMESPACE ...
+#Creating Read-and-delete-me ...
+#Saving functions and data ...
+#Making help files ...
+#Done.
+#Further steps are described in './anRpackage/Read-and-delete-me'
+```
+
+**Working Directory and Reading Files**
+
+```{r package extras, include=FALSE}
+getwd()  # what directory will R look in?#Linux/Mac 
+setwd('/Users/mczahor/Desktop/') # change the wd
+setwd('../tmp') # relative path
+# Windows - use either \\ or / to indicate directories
+# setwd('C:\\Users\\Your_username\\Desktop\\Location')
+# platform-agnostic
+```
+
+
+**Read .csv Files**
+
+```{r csv files, include=FALSE}
+kc_dat <- read.csv("kc_dat.csv")
+```
+
+
+**Data Frames**
+
+```{r dataframes, include=FALSE}
+next_gen <- read.csv("next_gen.csv")
+next_gen_seas <- read.csv("next_gen_season.csv")
+
+colnames(next_gen_seas)[c(1:3)]
+#"shortName" "playerName""aggressiveness"
+dim(next_gen_seas) #119  23  ROW X COLUMN
+
+head(next_gen_seas)
+tail(next_gen_seas)
+
+next_gen_seas$avgAirDistance #single columns
+next_gen_seas[,1] #column 1
+next_gen_seas[1,] #row 1
+next_gen_seas[1,1] #row 1 column 1
+next_gen_seas$attempts[1] #row 1 for attempts
+```
+
+
+**Filtering**
+
+```{r filtering, include=FALSE}
+unique(next_gen$playerName) #unique names
+
+subset(next_gen,next_gen$playerName=="Patrick Mahomes") 
+#PM games
+
+subset(next_gen,next_gen$passYards>300) 
+#games over 300 pass yds
+```
+
+
+**Excercise Filtering**
+
+```{r excerise filter, include=FALSE}
+tbrady <- subset(next_gen_seas,
+                 next_gen_seas$playerName=="Tom Brady") #brady filter
+
+subset(tbrady,tbrady$passYards>4300) #4300 or more yards
+
+tb_4300 <- subset(tbrady,tbrady$passYards>4300) #assign frame
+
+tb_4300$season[order(tb_4300$completionPercentage,decreasing = TRUE)]
+```
+
+
+**Plot Intro**
+
+```{r plotintro, include=FALSE}
+
+plot(tbrady$passYards,tbrady$passerRating, #variables
+     xlab="Passing Yards",                 #xlabel name
+     ylab="Passer Rating",                 #ylabel name
+     main="This plot is boring",           #title
+     col="red",                            #point color
+     pch=19,                               #point type
+     cex=2)                                #point size
+
+#pch symbols here! http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r
+```
+
+
+---
+title: "Slide Set 2 eZcZ "
+author: "M.S.Czahor"
+date: "4/8/2020"
+Slide Set 2
+---
+
+```{r reload data, include=FALSE}
+next_gen <- read.csv("next_gen.csv") 
+#next gen data set (scraped)
+colnames(next_gen) #column names
+```
+
+```{r factor data, include=FALSE}
+class(next_gen$playerName) #check class
+levels(next_gen$playerName)[1:4]
+#checking the first 4 levels
+#"Aaron Rodgers" "AJ McCarron"   
+#"Alex Smith"   "Andrew Luck" 
+
+#Supopse name is spelled incorrectly
+
+levels(next_gen$playerName)[2] <- "AJ McCarron"
+```
+
+```{r excercise data types, include=FALSE}
+#Some examples shortName     = nominal
+              #interceptions = discrete
+              #maxAirDistance= continuous
+
+next_gen$teamId <- as.factor(next_gen$teamId)
+length(levels(next_gen$teamId))  #49
+
+class(next_gen$completions) #integer/discrete
+mean(next_gen$passYards) #244.931
+```
+
+
+
+```{r histograms, include=FALSE}
+hist(next_gen$passYards, freq=TRUE, breaks=10, #num bars
+     main="Passing Yards by Game since 2016", #title
+     xlab='Passing yards',                    #x axis
+     ylab='Freq. (Number of games)',          #y axis
+     col='blue')                              #color of bars
+```
+
+
+```{r tables, include=FALSE}
+next_gen$season <- as.factor(next_gen$season)
+table(next_gen$season)
+#2016 2017 2018 2019
+#512  512  517  517
+```
+
+```{r barplots, include=FALSE}
+barplot(prop.table(table(next_gen$season)), 
+        main='Games by Season')
+```
+
+
+```{r piecharts, include=FALSE}
+pie(prop.table(table(next_gen$season)), 
+    main='Games by Season')
+```
+
+```{r means/medians, include=FALSE}
+
+par(mfrow=c(1,2)) #set two rows and 1 column!
+
+hist(next_gen$avgTimeToThrow,           #histogram
+     xlab="Average Time to Throw (sec)",#xaxis
+     main="Average Time to Throw",      #title
+     col="red")                         #color
+abline(v=mean(next_gen$avgTimeToThrow)  #vertical bar
+       ,lwd=2)                          #line width
+
+hist(next_gen$aggressiveness,          
+     xlab="Aggressiveness %",
+     main="Aggressiveness",
+     col="blue")
+abline(v=mean(next_gen$aggressiveness)
+       ,lwd=2)
+```
+
+
+```{r exercise mean/med, include=FALSE}
+p_mahomes <- subset(next_gen,playerName=="Patrick Mahomes") 
+#subset mahomes
+mean(p_mahomes$passYards) #311.2
+median(p_mahomes$passYards) #308.5
+
+hist(p_mahomes$passYards,
+     xlab="Passing Yards",
+     main="P. Mahomes Passing Yards",
+     col="red")
+abline(v=mean(p_mahomes$passYards),
+       lwd=2)
+abline(v=median(p_mahomes$passYards),
+       lwd=2,
+       col="blue")
+```
+
+
+```{r variability, include=FALSE}
+sd(next_gen$maxAirDistance,na.rm=TRUE) 
+#remove missing data
+var(next_gen$maxAirDistance,na.rm=TRUE) 
+#sd^2
+```
+
+
+```{r applied empirical, include=FALSE}
+hist(next_gen$passYards,
+     xlab="Passing Yards",
+     main="Passing Yards")
+abline(v=mean(next_gen$passYards),
+       lwd=3,
+       col="red")
+abline(v=c(mean(next_gen$passYards)+sd(next_gen$passYards),
+           mean(next_gen$passYards)-sd(next_gen$passYards)),
+       lwd=3,
+       col="blue")
+```
+
+
+```{r exercise quantiles, include=FALSE}
+yds <- next_gen$passYards
+m_yds <- mean(next_gen$passYards)
+sd_yds <- sd(next_gen$passYards)
+
+quantile(yds,.84) #84th percentile
+m_yds+sd_yds      #add one standard dev.
+
+quantile(yds,.16) #16th percentile
+m_yds-sd_yds     #subtract one standard dev.
+
+```
+
+
+```{r quantiles extended, include=FALSE}
+next_gen_seas <- read.csv("next_gen_season.csv")
+
+hist(next_gen_seas$passerRating,
+     main="Passer Ratings since 2017",
+     xlab="Passer Rating",
+     col="red",
+     las=1)                   #las=1 rotate y values
+abline(v=85,lwd=3,col="blue")  
+
+ecdf(next_gen_seas$passerRating)(85)        
+#this means approximately 33.61% of all qbs
+#since 2017 had a passer rating LESS than 85.
+quantile(next_gen_seas$passerRating,.3361)
+#this gives us the RATING where 33.61% of all
+#qbs since 2017 had a passer rating less than 
+#this value (i.e., 85)
+```
+
+
+```{r iqr/summary, include=FALSE}
+pr <- next_gen_seas$passerRating
+IQR(pr)    #16.27447 = Q3 - Q1  
+summary(pr) 
+#Min.   1st Qu.  Median Mean     3rd Qu. Max. 
+#60.50   81.86   90.18   90.03   98.14  117.50 
+```
+
+
+```{r boxplot, include=FALSE}
+boxplot(pr,col="red",
+        las=1,
+        main="QB Rating Boxplot since 2017")
+```
+
+
+```{r zscores, include=FALSE}
+pr_z <- scale(pr)     #scale the data
+
+pdf("z_compare.pdf")  #start a pdf
+par(mfrow=c(2,1))     #two rows 1 column
+hist(pr,breaks=10)
+hist(pr_z,breaks=10)
+dev.off()            #pdf sent to directory
+```
+
+
+```{r pnrom, include=FALSE}
+pnorm(pr_z)*100  
+#lists the percentile 
+#for each obs.
+```
+
+
+```{r exercise norm hand, include=FALSE}
+par(mfrow=c(2,1))    
+
+x <- rnorm(10000,mean=63,sd=4)    #normal random variables
+hist(x)
+abline(v=68,col="red",lwd=3)
+
+z <- rnorm(10000,mean=0,1)    
+hist(z)
+abline(v=(68-63)/4,col="red",lwd=3) #z score for 68
+```
+
+
+```{r scatter, include=FALSE}
+next_gen <- read.csv("next_gen.csv")
+
+plot(next_gen$passYards,next_gen$passerRating, #x first
+     xlab="Passing Yards",  #x label
+     ylab="Passer Rating",  #y label
+     main="Our First Scatter Plot!") #title
+
+```
+ 
+
+```{r exercise pass attempts, include=FALSE}
+next_gen <- read.csv("next_gen.csv")
+
+par(mfrow=c(2,1))
+boxplot(next_gen$attempts,horizontal = TRUE)
+hist(next_gen$attempts)
+
+```
+
+
+
+###SUBMOD4!###
+
+```{r datawrangleintro, include=FALSE}
+setwd("/Users/mczahor/Desktop/Course/Summer Bootcamp/Intro to Stat Sessions/nhlgamedata")      #this will not be the same for you!
+game <- read.csv("game.csv")  #game data
+skate <- read.csv("game_skater_stats.csv") #skate-ice data
+player <- read.csv("player_info.csv") #player info
+
+ins <-match(skate$player_id,player$player_id) #match player ids
+ins_2 <- match(skate$game_id,game$game_id) #match game ids
+skate$Name <- as.factor(paste(player$firstName[ins],player$lastName[ins]))
+#create a Name Variable using the player info data
+skate$date <- game$date_time[ins_2]
+#create a date variable using hhe game data
+library(lubridate)
+skate$date <- ymd(skate$date)
+#using lubridate, convert to data data
+```
+
+```{r trimming, include=FALSE}
+skate_nas <- skate                  #skate with NAs
+skate_nas$player_id[c(4,5)] <- NA   #insert some NAs
+head(skate_nas)                     #view the NAs
+dim(skate_nas)                      #df dimension #411578 24
+trim_skate_nas <- na.omit(skate_nas)#remove NAs
+head(trim_skate_nas)                #NAs are gone!
+dim(trim_skate_nas)                 #new dimension!
+```
+ 
+```{r dplyrselect, include=FALSE}
+
+skate_time <- dplyr::select(skate,Name,date,timeOnIce) 
+dplyr::select(skate,game_id:assists) 
+
+colnames(skate)
+```
+
+```{r selectexercise, include=FALSE}
+shot_hit <- dplyr::select(skate,Name,date,shots,hits)
+nhl_test <- skate[,2:18]
+nhl_test <- dplyr::select(skate,player_id:blocked)
+```
