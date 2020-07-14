@@ -26,3 +26,8 @@ install.packages("reprex")
 install.packages("rlang")
 install.packages("swirl")
 install.packages("vroom")
+install.packages("maps")
+install.packages("cluster")
+install.packages("devtools")
+install.packages("Lahman")
+
