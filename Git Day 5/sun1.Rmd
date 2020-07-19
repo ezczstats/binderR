@@ -1,0 +1,599 @@
+
+```{r sun1, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidymodels)
+library(skimr)
+library(tidyr)
+library(stringr)
+library(readr)
+library(lubridate)
+library(forcats)
+library(kableExtra)
+vb <- read.csv("vbdat.csv")
+vb <- vb%>%
+  mutate(match_id=row_number())
+
+
+skim(vb)
+```
+
+
+```{r Task 1}
+##Task 1
+
+ggplot(data=vb%>%
+  count(tournament,sort=TRUE)%>%
+  arrange(desc(n))%>%
+  slice(1:5),
+     aes(x=tournament, y=n,color=tournament)) +
+  geom_bar(stat="identity", aes(fill=tournament))+
+  theme_minimal()+ggtitle("Tournament Location")
+```
+
+
+```{r}
+vb%>%
+  count(circuit,tournament,date,sort=TRUE)
+
+vb%>%
+  count(tournament,sort=TRUE)
+
+
+
+#kable(vb%>%
+  #count(gender,sort=TRUE) ) %>%
+ # kable_styling("striped", full_width = F) %>%
+ # row_spec(0, angle = -45)
+
+```
+
+
+```{r Task 2}
+vb_long <- vb%>%
+  rename(w_p1_name=w_player1, w_p2_name=w_player2,
+         l_p1_name=l_player1, l_p2_name=l_player2,
+         w_team_rank=w_rank,l_team_rank=l_rank)%>%
+  mutate_at(vars(starts_with("w_"),starts_with("l_")),as.character) %>%
+  pivot_longer(cols=c(starts_with("w_"),starts_with("l_")))%>%
+  separate(name,c("winner_loser","player","name"),
+           sep="_",
+           extra="merge",
+           fill="right")%>%
+  mutate(winner_loser=str_to_upper(winner_loser))
+
+
+vb_player_matches <- vb_long%>%
+  filter(name!="rank")%>%
+  spread(name,value)%>%
+  type_convert()
+
+
+##Task 2
+
+ggplot(data = vb_player_matches, aes(x=age)) + 
+  geom_density(aes(fill=gender), alpha = 0.4)
+
+ggplot(data = vb_player_matches%>%filter(year %in% c(2015:2017)), aes(x=age)) + 
+  geom_density(aes(fill=gender), alpha = 0.4)+ 
+  facet_wrap(~year)+theme_bw()
+```
+
+
+```{r Task 3}
+vb_sets <- vb%>%
+  select(match_id,circuit:match_num,score)%>%
+  separate_rows(score,sep=", ")%>%
+  mutate(score=str_remove(score,"retired"))%>%
+  mutate(score=na_if(score,"Forfeit or other"))%>%
+  separate(score,c("w_score","l_score"),convert=TRUE)
+
+  #need to viz scores
+
+diff_sets <- vb_sets%>%
+  mutate(diff=abs(w_score-l_score))
+
+diff_sets%>%
+  group_by(gender)%>%
+  summarise(mdiff=mean(diff,na.rm=TRUE))
+
+p1 <- diff_sets%>%
+  group_by(year,gender)%>%
+  summarise(mdiff=mean(diff,na.rm=TRUE))%>%
+  ggplot(aes(year,mdiff))+
+  geom_point(aes(col=gender))+geom_line()+theme_bw()+facet_wrap(~gender)
+
+#ggplotly
+```
+
+## Look at players
+
+Who is good? Can we get some data and create points after?
+It's always 2 v 2 in this data set
+
+```{r Task 4}
+vb_player_matches%>%
+  group_by(name,gender)%>%
+  summarize(n_matches=n(),
+            pct_winner=mean(winner_loser=="W"))%>%
+  arrange(desc(n_matches))
+```
+
+
+
+Same question , how long have they been active?
+
+```{r Task 5ab}
+vb_player_matches$date <- as.Date(vb_player_matches$date)
+
+vb_player_matches%>%
+  group_by(name,gender)%>%
+  summarize(n_matches=n(),
+            pct_winner=mean(winner_loser=="W"),
+            first_game=_____,
+            last_game=______)%>%
+  arrange(desc(n_matches))
+```
+
+
+```{r Task 6}
+by_player <- vb_player_matches%>%
+  group_by(name,gender)%>%
+  summarize(n_matches=n(),
+            pct_winner=mean(winner_loser=="W"),
+            first_game=min(date),
+            last_game=max(date))%>%
+  arrange(desc(n_matches))%>%
+  ungroup()
+
+#why ungroup? the filter argument below could be slowed down
+
+#Who has been playing the most and how often are they a winner? at least 500 matches --- longer played, more likely to be a winner
+
+by_player%>%
+  filter(n_matches>=200)%>%
+  ggplot(aes(n_matches,pct_winner,color=gender))+
+  geom_point()+
+  scale_x_log10()+
+  labs(x="# of matches since 2000 (log scale)",
+       y="Probability of winning a match")+
+  theme_bw()
+
+
+##looks like a positive correlation
+#three highest --> women
+#who is that really high point?!?!1
+
+by_player%>%
+  filter(n_matches>=200)%>%
+  arrange(desc(pct_winner))
+
+#misty may treanor --> played for 16 years?!
+```
+
+what else at the player level --> a bit worried about the NAs (at the player level that is)
+
+What fraction of the data is not null?
+Gather (oe tall format)
+
+```{r}
+vb_player_matches%>%
+  summarize_all(~mean(!is.na(.)))%>%
+  gather()
+```
+
+
+Which tournaments have attack info?
+
+```{r Task 7}
+vb_player_matches%>%
+  group_by(tournament)%>%
+  summarize(pct_has_attacks=mean(!is.na(tot_attacks)),
+            n=n())%>%
+  arrange(desc(n))
+
+```
+
+How do we think through data cleaning?
+
+Step 1: what does each row represent....
+Step 2: issues -- players in two columns -- height in two
+Step 3: Reshape
+
+
+
+How would we judge a rookie player?
+
+```{r}
+player_first_year <- vb_player_matches%>%
+  group_by(name)%>%
+  filter(year==min(year)) %>% 
+  ungroup()
+```
+
+
+```{r Task 8}
+player_first_year_summarized <- player_first_year %>% 
+  group_by(name,gender,hgt,birthdate,country,year,
+           age=year-year(birthdate)) %>% 
+  summarize(n_matches=n(),
+            pct_winner=mean(winner_loser=="W"),
+            avg_attacks=mean(tot_attacks,na.rm=TRUE),
+            avg_errors=mean(tot_errors,na.rm=TRUE),
+            avg_kills=mean(tot_kills,na.rm=TRUE),
+            avg_aces=mean(tot_aces,na.rm=TRUE),
+            n_with_data=sum(!is.na(tot_attacks))) %>% 
+  ungroup() %>% 
+  arrange(desc(n_matches)) %>% 
+  filter(!is.nan(avg_attacks))
+
+  player_first_year_summarized%>%
+    group_by(gender,year)%>%
+    summarize(m_age=mean(age,na.rm=TRUE))%>%
+    ggplot(aes(x=year,y=m_age))+
+    geom_point(aes(col=gender))+
+    geom_line(aes(col=gender))+theme_bw()
+  
+  
+plot(player_first_year_summarized$hgt,
+     player_first_year_summarized$avg_attacks)
+
+
+
+
+```
+
+Of course someone could've started their career before 2002
+
+
+
+Let's now talk about prediction
+
+```{r Task 9}
+players_before_2017 <- vb_player_matches %>% 
+  filter(______)%>%
+  group_by(name,gender,hgt,birthdate,country) %>% 
+  summarize(n_matches=n(),
+            pct_winner=mean(winner_loser=="W"),
+            avg_attacks=mean(tot_attacks,na.rm=TRUE),
+            avg_errors=mean(tot_errors,na.rm=TRUE),
+            avg_serve_errors=mean(tot_serve_errors,na.rm=TRUE),
+            avg_kills=mean(tot_kills,na.rm=TRUE),
+            avg_aces=mean(tot_aces,na.rm=TRUE),
+            n_with_data=sum(!is.na(tot_attacks))) %>% 
+  ungroup() %>% 
+  arrange(desc(n_matches)) %>% 
+  filter(!is.nan(avg_attacks))
+
+
+```
+
+
+
+Maybe players are more aggressive
+```{r Task 10}
+players_before_2017%>%
+  filter(n_with_data>=20)%>%
+  ggplot(aes(avg_serve_errors,avg_aces,size=n_with_data))+
+  geom_point()+
+  labs(size="Games",
+       title="Don't trust this")
+```
+
+Create a summarize function
+
+```{r Task 11}
+summarize_players <- .%>%
+  summarize(n_matches=n(),
+            pct_winner=mean(winner_loser=="W"),
+            avg_attacks=mean(tot_attacks,na.rm=TRUE),
+            avg_errors=mean(tot_errors,na.rm=TRUE),
+            avg_serve_errors=mean(tot_serve_errors,na.rm=TRUE),
+            avg_kills=mean(tot_kills,na.rm=TRUE),
+            avg_aces=mean(tot_aces,na.rm=TRUE),
+            n_with_data=sum(!is.na(tot_attacks))) %>% 
+  ungroup() %>% 
+  arrange(desc(n_matches))
+  
+
+players_before_2017 <- vb_player_matches%>%
+  filter(year<2017) %>% 
+  group_by(name,gender,hgt,birthdate,country) %>% 
+  summarize_players() %>% 
+  filter(!is.na(avg_attacks))
+
+players_2017 <- vb_player_matches %>% 
+  filter(year==2017) %>% 
+  group_by(name,gender,hgt,birthdate,country) %>% 
+  summarize_players()
+
+players_2017
+```
+
+```{r Task 12}
+performance_joined <- players_before_2017%>%
+  inner_join(players_2017 %>% 
+  select(name,n_matches,pct_winner),
+  by="name",
+  suffix=c("","_2017"))
+
+performance_joined %>% 
+  filter(n_matches>=10,
+         n_matches_2017>=5) %>% 
+  ggplot(aes(pct_winner,pct_winner_2017))+
+  geom_point()+
+  geom_abline(color="red")+
+  geom_smooth(method="lm")
+
+performance_joined%>%
+  mutate(n_wins_2017=n_matches_2017*pct_winner_2017)%>%
+  glm(cbind(n_wins_2017,n_matches_2017-n_wins_2017)~
+        pct_winner,
+      data=.,
+      family="binomial") %>% 
+  summary()
+
+#positive association if you've won before you're more likely to win again
+```
+
+
+
+
+```{r}
+performance_joined%>%
+  mutate(n_wins_2017=n_matches_2017*pct_winner_2017,
+         country=fct_lump(country,3))%>%
+  glm(cbind(n_wins_2017,n_matches_2017-n_wins_2017)~
+        pct_winner+country,
+      data=.,
+      family="binomial") %>% 
+  summary()
+```
+
+
+```{r}
+performance_joined%>%
+  mutate(n_wins_2017=n_matches_2017*pct_winner_2017,
+         country=fct_lump(country,3))%>%
+  glm(cbind(n_wins_2017,n_matches_2017-n_wins_2017)~
+        pct_winner+avg_errors,
+      data=.,
+      family="binomial") %>% 
+  summary()
+
+#most of what you want to know is incorporated in pct winner
+```
+
+
+###How would we predict if a player will win in 2017
+
+```{r}
+performance_joined%>%
+  mutate(n_wins_2017=n_matches_2017*pct_winner_2017)%>%
+  lm(cbind(n_wins_2017,n_matches_2017-n_wins_2017)~
+        pct_winner,
+      data=.) %>% 
+  summary()
+
+
+```
+
+
+```{r Task 14}
+ll <- performance_joined %>% 
+  filter(n_matches>=10,
+         n_matches_2017>=5)
+
+lmodel <- lm(data=ll,pct_winner_2017~pct_winner)
+
+performance_joined
+```
+
+Our modeling goal is to predict whether a beach volleyball team of two won their match based on game play stats like errors, blocks, attacks, etc 
+
+This dataset has the match stats like serve errors, kills, and so forth divided out by the two players for each team, but we want those combined together because we are going to make a prediction per team (i.e. what makes a team more likely to win). Let’s include predictors like gender, circuit, and year in our model along with the per-match statistics. Let’s omit matches with NA values because we don’t have all kinds of statistics measured for all matches.
+
+```{r Task 15}
+
+vb_parsed <- vb %>%
+  transmute(
+    circuit,
+    gender,
+    year,
+    w_attacks = w_p1_tot_attacks + w_p2_tot_attacks,
+    w_kills = w_p1_tot_kills + w_p2_tot_kills,
+    w_errors = w_p1_tot_errors + w_p2_tot_errors,
+    w_aces = w_p1_tot_aces + w_p2_tot_aces,
+    w_serve_errors = w_p1_tot_serve_errors + w_p2_tot_serve_errors,
+    w_blocks = w_p1_tot_blocks + w_p2_tot_blocks,
+    w_digs = w_p1_tot_digs + w_p2_tot_digs,
+    l_attacks = l_p1_tot_attacks + l_p2_tot_attacks,
+    l_kills = l_p1_tot_kills + l_p2_tot_kills,
+    l_errors = l_p1_tot_errors + l_p2_tot_errors,
+    l_aces = l_p1_tot_aces + l_p2_tot_aces,
+    l_serve_errors = l_p1_tot_serve_errors + l_p2_tot_serve_errors,
+    l_blocks = l_p1_tot_blocks + l_p2_tot_blocks,
+    l_digs = l_p1_tot_digs + l_p2_tot_digs
+  ) %>%
+  na.omit()
+
+vb_parsed
+
+#vb_matches <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-05-19/vb_matches.csv', guess_max = 76000)
+
+```
+
+
+
+Still plenty of data! Next, let’s create separate dataframes for the winners and losers of each match, and then bind them together. We am using functions like rename_with().
+
+
+
+```{r}
+winners <- vb_parsed %>%
+  select(circuit, gender, year,
+         w_attacks:w_digs) %>%
+  rename_with(~ str_remove_all(., "w_"), w_attacks:w_digs) %>%
+  mutate(win = "win")
+
+losers <- vb_parsed %>%
+  select(circuit, gender, year,
+         l_attacks:l_digs) %>%
+  rename_with(~ str_remove_all(., "l_"), l_attacks:l_digs) %>%
+  mutate(win = "lose")
+
+vb_df <- bind_rows(winners, losers) %>%
+  mutate_if(is.character, factor)
+```
+
+
+This is a similar data prep approach to Joshua Cook.
+
+Exploratory data analysis is always important before modeling. Let’s make one plot to explore the relationships in this data.
+
+```{r}
+vb_df %>%
+  pivot_longer(attacks:digs, names_to = "stat", values_to = "value") %>%
+  ggplot(aes(gender, value, fill = win, color = win)) +
+  geom_boxplot(alpha = 0.4) +
+  facet_wrap(~stat, scales = "free_y", nrow = 2) +
+  labs(y = NULL, color = NULL, fill = NULL)
+
+
+
+n_dat <- vb_df %>%
+  pivot_longer(attacks:digs, names_to = "stat", values_to = "value")%>%filter(stat=="attacks")
+
+library(dplyr)
+group_by(n_dat, c(win)) %>%
+  summarise(
+    count = n(),
+    mean = mean(value, na.rm = TRUE),
+    sd = sd(value, na.rm = TRUE)
+  )
+  
+res.aov <- aov(value ~ gender+win, data = n_dat)
+# Summary of the analysis
+summary(res.aov)
+```
+
+
+Interpret the result of one-way ANOVA tests
+As the p-value is less than the significance level 0.05, we can conclude that there are significant differences between the groups highlighted with “*" in the model summary.
+
+Multiple pairwise-comparison between the means of groups
+In one-way ANOVA test, a significant p-value indicates that some of the group means are different, but we don’t know which pairs of groups are different.
+
+It’s possible to perform multiple pairwise-comparison, to determine if the mean difference between specific pairs of group are statistically significant.
+
+Tukey multiple pairwise-comparisons
+As the ANOVA test is significant, we can compute Tukey HSD (Tukey Honest Significant Differences, R function: TukeyHSD()) for performing multiple pairwise-comparison between the means of groups.
+
+The function TukeyHD() takes the fitted ANOVA as an argument.
+
+```{r}
+TukeyHSD(res.aov)
+```
+
+diff: difference between means of the two groups
+lwr, upr: the lower and the upper end point of the confidence interval at 95% (default)
+p adj: p-value after adjustment for the multiple comparisons.
+
+Check ANOVA assumptions: test validity?
+The ANOVA test assumes that, the data are normally distributed and the variance across groups are homogeneous. We can check that with some diagnostic plots.
+
+Check the homogeneity of variance assumption
+The residuals versus fits plot can be used to check the homogeneity of variances.
+
+In the plot below, there is no evident relationships between residuals and fitted values (the mean of each groups), which is good. So, we can assume the homogeneity of variances.
+
+```{r}
+plot(res.aov, 1)
+```
+
+Points are detected as outliers, which can severely affect normality and homogeneity of variance. It can be useful to remove outliers to meet the test assumptions.
+
+It’s also possible to use Bartlett’s test or Levene’s test to check the homogeneity of variances.
+
+
+```{r}
+library(car)
+leveneTest(value ~ gender, data = n_dat)
+
+```
+
+
+From the output above we can see that the p-value is not less than the significance level of 0.05. This means that there is no evidence to suggest that the variance across groups is statistically significantly different. Therefore, we can assume the homogeneity of variances in the different treatment groups.
+
+
+Relaxing the homogeneity of variance assumption
+The classical one-way ANOVA test requires an assumption of equal variances for all groups. In our example, the homogeneity of variance assumption turned out to be fine: the Levene test is not significant.
+
+How do we save our ANOVA test, in a situation where the homogeneity of variance assumption is violated?
+
+An alternative procedure (i.e.: Welch one-way test), that does not require that assumption have been implemented in the function oneway.test().
+
+ANOVA test with no assumption of equal variances
+
+```{r}
+oneway.test(value ~ gender, data = n_dat)
+```
+
+Pairwise t-tests with no assumption of equal variances
+
+
+```{r}
+pairwise.t.test(n_dat$value, n_dat$win,
+                 p.adjust.method = "BH", pool.sd = FALSE)
+```
+
+Check the normality assumption
+Normality plot of residuals. In the plot below, the quantiles of the residuals are plotted against the quantiles of the normal distribution. A 45-degree reference line is also plotted.
+
+The normal probability plot of residuals is used to check the assumption that the residuals are normally distributed. It should approximately follow a straight line.
+
+```{r}
+plot(res.aov, 2)
+```
+
+As all the points do NOT fall approximately along this reference line, we cannot assume normality.
+
+The conclusion above, is supported by the Shapiro-Wilk test on the ANOVA residuals which finds an indication that normality is violated.
+
+```{r}
+aov_residuals <- residuals(object = res.aov )
+# Run Shapiro-Wilk test
+res.aov
+#shapiro.test(x = aov_residuals)
+```
+
+---------------------------------------------------------------
+We can see differences in errors and blocks especially. There are lots more great examples of #TidyTuesday EDA out there to explore on Twitter!
+
+
+Building a model
+
+We can start by loading the tidymodels metapackage, and splitting our data into training and testing sets.
+
+
+
+```{r}
+
+set.seed(123)
+vb_split <- initial_split(vb_df, strata = win)
+vb_train <- training(vb_split)
+vb_test <- testing(vb_split)
+
+
+vb_train <- vb_train%>%arrange(desc(attacks))%>%slice(-1)
+
+plot(lm(data=vb_train,attacks~kills))
+```
+
+
+
+
+```{r}
+
+```
+
