@@ -7,4 +7,4 @@ install.packages("tidyr")
 install.packages("lubridate")
 install.packages("forcats")
 install.packages("kableExtra")
-
+install.packages("plotly")
