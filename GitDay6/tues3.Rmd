@@ -1,0 +1,665 @@
+
+```{r thurs1, include=FALSE}
+library(swirl)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(skimr)
+library(devtools)
+
+#swirl::install_course("Regression Models") please do chapters 1-13 for homework
+#swirl()
+
+nhl <- read.csv("nhl.csv")
+```
+
+```{r}
+head(nhl) #GP
+```
+
+```{r}
+skim(nhl)
+```
+
+
+```{r}
+plot(nhl$Age,
+     jitter(nhl$Shifts,4),las=1)
+
+#can use jitter if we'd like
+```
+
+```{r}
+regrline <- lm(Shifts~Age,data=nhl)
+```
+
+```{r}
+plot(nhl$Age,
+     jitter(nhl$Shifts,4),las=1)
+abline(regrline, lwd=3, col='red')
+
+```
+
+```{r}
+summary(regrline)
+```
+
+
+```{r}
+fit <- lm(Shifts ~ Age, nhl)
+summary(fit)
+fit$residuals
+
+```
+
+
+```{r}
+mean(fit$residuals)
+cov(fit$residuals, nhl$Age)
+```
+
+
+```{r}
+ols.ic<- fit$coefficients[1]
+ols.slope<- fit$coefficients[2]
+```
+
+
+
+```{r}
+
+sqe <- function(slope, intercept)sum( (est(slope, intercept)-nhl$Shifts)^2)
+
+est <- function(slope, intercept)intercept + slope*nhl$Age
+
+
+#Here are the vectors of variations or tweaks
+sltweak <- c(.01, .02, .03, -.01, -.02, -.03) #one for the slope
+ictweak <- c(.1, .2, .3, -.1, -.2, -.3)  #one for the intercept
+lhs <- numeric()
+rhs <- numeric()
+#left side of eqn is the sum of squares of residuals of the tweaked regression line
+for (n in 1:6) lhs[n] <- sqe(ols.slope+sltweak[n],ols.ic+ictweak[n])
+#right side of eqn is the sum of squares of original residuals + sum of squares of two tweaks
+for (n in 1:6) rhs[n] <- sqe(ols.slope,ols.ic) + sum(est(sltweak[n],ictweak[n])^2)
+
+lhs-rhs
+```
+
+
+```{r}
+varShifts <- var(nhl$Shifts)
+varRes <- var(fit$residuals)
+```
+
+```{r}
+varEst <- var(est(ols.slope, ols.ic))
+
+all.equal(varShifts,varEst+varRes)
+
+all.equal
+```
+
+
+```{r}
+efit <- lm(Shifts ~ Age+G, nhl)
+
+ #sqrt
+```
+
+
+```{r}
+plot(nhl$Sh,nhl$G)
+fit <- lm(G ~ Sh, nhl)
+summary(fit)
+sqrt(sum(fit$residuals^2) / (n - 2))
+```
+
+
+```{r}
+summary(fit)$sigma
+deviance(fit)/(n-2)
+```
+
+```{r}
+mu <- mean(nhl$G)
+gTot <- sum((nhl$G-mu)^2)
+sRes <- deviance(fit)
+```
+
+```{r}
+1-sRes/gTot
+
+summary(fit)
+summary(fit)$r.squared
+cor(nhl$Sh,nhl$G)^2
+```
+
+
+###Demo
+
+
+Linear Regression is a supervised modeling technique for continuous data that generates a response based on the set of input features. It is used for explaining the linear relationship between a single variable Y, called the response (output or dependent variable), and one or more predictor (input, independent or explanatory variables).
+
+It’s a simple regression problem if only a single variable X is considered, otherwise it takes the form of a multiple regression problem, that is if more than one predictor is used in the model.
+
+The basic equation is the following:
+
+Yi=β0+β1X+ϵ
+
+In the equation, they represent the intercept, the slope, the error term, respectively:
+β0
+β1
+ϵ
+
+The assumptions for linear regression are:
+
+Linearity: the relationship between X and Y is linear;
+
+Homoscedasticity: the variance of residuals is the same for any given value of X;
+
+Independence: all observations are independent of each other;
+
+Normality: Y is normally distributed for any given value of X.
+
+Note: an error is introduced if the basic assumption about the linearity of the model does not correspond to reality (bias towards linearity). Ideally, error term should be random and not be dependent on any input. It can ben considered the part of Y that the regression model is unable to explain.
+
+**View the Data
+
+```{r Demo}
+head(nhl)
+```
+
+**Subset Data of Interest
+
+It is now possibile to subset the original dataset and select variables and observations for the simple regression analysis:
+
+Looking at Goals vs. Shots
+
+
+```{r Demo}
+nhl$name <- paste(nhl$First.Name,nhl$Last.Name)
+
+nhl <- nhl%>%
+  select(name,Sh,G,GP,
+         Pos,Age,Ctry)%>%
+  filter(GP>30)
+
+
+```
+
+Check for missing data
+
+```{r}
+colSums(is.na(nhl))
+```
+
+Both columns do not show any NA value.
+
+Note: Generally, if many values are missing from the dataset, the effective sample may turn out to be too small to yield significant findings.
+
+Here the univariate summary information of the new dataset:
+
+```{r}
+summary(nhl) 
+```
+
+
+Graphical Analysis
+
+
+Let's Start with Boxplots
+
+```{r}
+library(ggpubr)
+
+
+
+p1 <- nhl%>%
+  ggplot(aes(x=Sh))+
+  geom_boxplot()+
+  coord_flip()+
+  theme_bw()
+
+p2 <- nhl%>%
+  ggplot(aes(x=G))+
+  geom_boxplot()+
+  coord_flip()+
+  theme_bw()
+
+ggarrange(p1, p2,labels = c("Shots","G"), ncol = 2, nrow = 1)
+```
+
+
+
+
+Check for Outliers
+
+```{r}
+boxplot.stats(nhl$Sh)$out 
+boxplot.stats(nhl$G)$out
+```
+
+
+Note: Having outliers can affect the direction/slope of the line of best fit.
+
+Histograms  with means and wedians
+
+```{r}
+p3 <- nhl%>%
+  ggplot(aes(x=Sh))+
+  geom_histogram()+
+  theme_bw()+ 
+  geom_vline(xintercept = mean(nhl$Sh), show_guide=TRUE,color ="red", labels="Average")+ 
+  geom_vline(xintercept = median(nhl$Sh), show_guide=TRUE,color ="blue", labels="Median")
+
+p4 <- nhl%>%
+  ggplot(aes(x=G))+
+  geom_histogram()+
+  theme_bw()+ 
+  geom_vline(xintercept = mean(nhl$G), show_guide=TRUE,color ="red", labels="Average")+ 
+  geom_vline(xintercept = median(nhl$G), show_guide=TRUE,color ="blue", labels="Median")
+
+ggarrange(p3, p4,labels = c("Shots","G"), ncol = 1, nrow = 2)
+```
+
+
+Can plot the densities too if we want
+
+
+Next up, Scatter plot
+
+This visualization suggests if there is any linear relationship between the dependent (response) variable and independent (predictor) variable:
+
+
+```{r}
+nhl%>%
+  ggplot(aes(x=Sh,y=G))+
+  geom_point()+
+  theme_bw()
+```
+
+
+Plot shows there is a somewhat strong relationship between shots taken and goals scored (i.e. to higher shots taken correspond higher goals scored).
+
+Building linear model
+
+Objective now is building a linear model and see how well this model fits the observed data. In a simplistic form, equation to solve is the following:
+
+
+Goals=β0+β1shots
+
+Interpretation 
+
+```{r}
+nhl%>%
+  ggplot(aes(x=Sh,y=G))+
+  geom_point()+
+  theme_bw()+
+  stat_smooth(method="lm", col="red", size=1)
+  
+```
+
+
+Note: Ideally, the regression line should be as close as possible to all data points observed. Smoothing is set to a confidence level of 0.95 (by default).
+
+An additional and interesting possibility is to create a new variable named “Sh_cent”, that centers the value of the variable Sh on its mean: this is useful to give a meaningful interpretation of its intercept estimate (the average Shots is centered on value 0.0 on X-axis).
+
+```{r}
+set.seed(123) # setting seed to reproduce results of random sampling
+Sh_cent = scale(nhl$Sh, center=TRUE, scale=FALSE) # center the variable
+# Show the relationship with new variable centered, creating a regression line
+
+nhl%>%
+  ggplot(aes(x=Sh_cent,y=G))+
+  geom_point()+
+  theme_bw()+
+  stat_smooth(method="lm", col="red", size=1)
+```
+
+
+Linear model analysis
+
+Summary statistics are very useful to interpret the key components of the linear model output:
+
+
+```{r}
+mod1 = lm(G ~ Sh_cent, data = nhl)
+summary(mod1)
+```
+
+
+
+Residuals
+Residuals show if the predicted response values are close or not to the response values that the model predicts. In the current case, distribution of residuals is quite symmetric.
+
+Estimate coefficient
+The first row is the intercept and represents in the current case the expected G value of 10.21 when the average value of Sh is considered across the dataset.
+
+The second row is the slope term, and it shows in the current case that every Sh increase of 1produces a consequent increase of G of 0.117501.
+
+Standard error
+Standard error measures how the coefficient estimates can vary from the actual average value of the response variable (i.e. if the model is run more times). In the current case, it’s like to say that estimated G value can vary by 0.002943.
+
+Note: ideally, having a low number is the best situation in regression analysis. Standard error is then also used to set confidence intervals.
+
+Significance
+Test of significance of the model shows that there is strong evidence of a linear relationship between the variables. This is visually interpreted by the significance stars *** at the end of the row. This level is a threshold that is used to indicate real findings, and not the ones by chance alone.
+
+For each estimated regression coefficient, the variable’s p-Value Pr(>|t|) provides an estimate of the probability that the true coefficient is zero given the value of the estimate. More the number of stars near the p-Value are, more significant is the variable.
+
+With the presence of the p-value, there is a test of hypothesis associated with it. In Linear Regression, the Null Hypothesis is that the coefficient associated with the variables is equal to zero. Instead, the alternative hypothesis is that the coefficient is not equal to zero and then exists a relationship between the independent variable and the dependent variable.
+
+So, if p-values are less than significance level (typically, a p-value < 0.05 is a good cut-off point), null hypothesis can be safely rejected. In the current case, p-values are well below the 0.05 threshold, so the model is indeed statistically significant.
+
+t-statistic
+t-statistic is used in a t-test in order to decide if support or reject the null hypothesis.
+
+Note: t-statistic is the estimated value of the parameter (coefficient/slope) divided by its standard error.
+
+Then, this statistic is a measure of the likelihood that the actual value of the parameter is not zero. A larger t-value indicates that it is less likely that the coefficient is not equal to zero purely by chance.
+
+
+```{r}
+modSummary <- summary(mod1)  # capture model summary as an object
+modCoeff <- modSummary$coefficients  # model coefficients
+beta.estimate <- modCoeff["Sh_cent", "Estimate"]  # get beta coefficient estimate
+std.error <- modCoeff["Sh_cent", "Std. Error"]  # get standard error
+t_value <- beta.estimate/std.error  # calculate t statistic
+print(t_value) # print t-value
+```
+
+
+Note: if p-values are lower than significance level (< 0.05), t-statistic value should be greater than 1.96.
+
+Residual standard error
+Residual standard error is the average amount that the response deviates from the regression line (due to the presence of the error term), so it can be intended ad a measure of goodness of fit. 
+
+Note: degrees of freedom correspond to the number of observations (number of independent pieces of information that went into calculating the estimate) minus the number of parameters estimated (intercept and slope).
+
+R-squared
+For the simple linear regression, R-squared is the square of the correlation between two variables. Its value can vary between 0 and 1: a value close to 0 means that the regression model does not explain the variance in the response variable, while a number close to 1 that the observed variance in the response variable is well explained. In the current case, R-squared suggests the linear model fit explains a 71.83% of the variance observed in the data.
+
+High value of R-squared does not necessarily indicate if a regression model provides an adequate fit to data. A good model could show a low R-squared value, while, on the other hand, a biased model could have a high R-squared value.
+
+Note: R-squared value tends to increase as more variables are included in the model. So, adjusted R-squared is the preferred measure as it adjusts for the number of variables considered (it’sthe case of the multiple regression, but it’s out of scope of the current document).
+
+F statistic
+Basically, F-test compares the model with zero predictor variables (the intercept only mod1el), and suggests whether the added coefficients improve the model. If a significant result is obtained, then the coefficients (in the current case, being a simple regression, only one predictor is entered) included in the model improve the model’s fit.
+
+So, F statistic defines the collective effect of all predictor variables on the response variable. In this model, F=1594 is far greater than 1:
+
+Note: ideally, greater F statistic (higher than 1) is get, better the fit is (so, this statistic can be intended as a measure of goodness of fit).
+
+```{r}
+f_statistic <- mod1$fstatistic[1]  # calculate F statistic
+f <- summary(mod1)$fstatistic  # parameters for model p-value calculation
+print(f) # print F value
+```
+
+
+Regression diagnostic plots
+
+Diagnostics plots are used to evaluate the model assumptions and understand whether or not there are observations that can strongly have influence on the analysis. As consequence, the goal is to take the proper actions to improve the model fit.
+
+Residuals vs Fitted values
+
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=1)
+
+```
+
+Residual data of the simple linear regression model is the difference between the observed data of the dependent variable and the fitted values.
+
+The plot is useful for checking the assumption of linearity and homoscedasticity. To assess the assumption of linearity, residuals should be not too far from 0 (ideally, standardized values should be in the range of -2 and +2). To assess he assumption of homoscedasticity, residuals should be randomly and equally distributed around the horizontal red line (which is just a scatterplot smoother, showing the average value of the residuals at each value of fitted value) representing a residual error of zero.
+
+In the current case, the red trend line is almost at zero except towards the right side, due to outliers presence. Some values, in particular observations “128”, “263”, “619”, are also outside the range between -2 and +2.
+
+
+Normal Q-Q
+
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=2)
+```
+
+
+The normal Q-Q (quantile-quantile) plot is a scatterplot that allows to see if a set of data plausibly come from a normal distribution.
+
+It is created by plotting two sets of quantiles vs one another: graphically, the points will fall along a a straight line if both sets of quantiles come from the same distribution.
+
+In the current case, points form a line in the middle of the graph, but tend to deviate from the diagonal line in both the upper and lower extremities. Plot behaviour like this, means that the tails are lighter (have smaller values) than what would be expected under the standard modeling assumptions (of the Normal distribution). Again the observations that can be noticed in the tails are labeled.
+
+
+Scale-location
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=3)
+```
+
+The scale-location plot shows the square root of the standardized residuals (sort of a square root of relative error) as a function of the fitted values. It is useful to see how the residuals are spread and check the assumption of homoscedasticity (that it if the residuals have an equal variance or not).
+
+Residuals vs Leverage
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=5)
+```
+
+
+The plot shows each points leverage, which represents a measure of its importance in determining the regression result. Each point far from the dashed line can be intended as an influential point.
+
+Cook’s distance is the measure of the infuence of each observation on the regression coefficients.
+
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=4)
+```
+
+Distances larger than 1 suggest the presence of a possible outlier.
+
+
+Model improvement
+
+Model summary as well as diagnostic plots have given important information that allow to improve the model fit. Together with mod1, it is possible to explore the mod2 that omits the noticed outliers.
+
+Note: of course, different models could be considered, i.e. including a quadratic term or adding one or more variables (or considering a new transformation of variables), but it’s out of the scope of the current document (it becomes a multiple regression problem).
+
+As noticed in all the main diagnostic plots, the observations 128”, “263”, “619" can be considered as outliers. They can also be shown graphically:
+
+
+
+```{r}
+
+nhl$row_num <- 1:length(nhl$name)
+
+nhl$OUTLIER = ifelse(nhl$row_num %in% c(128,263,619),"Y","N") # create condition Yes/No if o
+
+
+
+nhl%>%
+  ggplot(aes(x=Sh,y=G))+
+  geom_point(aes(color=OUTLIER))+
+  theme_bw()+
+  stat_smooth(method="lm", col="red", size=1)
+```
+
+
+Blue points represent the three outliers indentified.
+
+So a new dataset can be created excluding them:
+
+```{r}
+newdata2 <- subset(nhl, row_num != 128 & row_num != 263 & row_num != 619,
+                  select=c(Sh, G))
+Sh_cent = scale(newdata2$Sh, center=TRUE, scale=FALSE) # center the variable
+```
+
+
+A new model is so given, and shows the following results:
+
+```{r}
+mod2 = lm(G ~ Sh_cent, data = newdata2)
+summary(mod2)
+```
+
+Removing outliers, model fits better than the previous: F statistic and R-squared values of mod2 are higher than mod1 ones. F and R2
+
+Diagnostic plots are summarized in the graph below:
+
+```{r}
+par(mfrow = c(2,2)) # display a unique layout for all graphs
+plot(mod2)
+```
+
+
+and “scale-location” show a red trend line closer to the horizontal line. Q-Q plot still shows some tails, but they seem to be more acceptable.
+
+Another way that gives support to model selection is calculating AIC (Akaike’s information criterion) and BIC (Bayesian information criterion) metrics. They represent measures of the goodness of fit of an estimated statistical model (both criteria depend on the maximized value of the likelihood function for the estimated model).
+
+
+```{r}
+AIC(mod1)
+AIC(mod2)
+
+BIC(mod1)
+BIC(mod2)
+
+```
+
+
+AIC and BIC values of mod2 are lower than mod1 ones. Generally, small values correspond to models with a low test error, so it’ is’s the confirmation that mod2 fits better than mod1.
+
+
+
+
+Predicting Linear Models
+
+
+Once the model has been improved, it is possibile to run predictive analytics, the real goal of the regression analysis. Dataset can be split into training (development) and testing (validation) dataset, and the test one will be used to evaluate the model comparing the predicted response with the actual response value.
+
+
+```{r}
+set.seed(123)  # setting seed to reproduce results of random sampling
+trainingRowIndex <- sample(1:nrow(newdata2), 0.7*nrow(newdata2))  #  training and testing: 70/30 split
+trainingData <- newdata2[trainingRowIndex, ]  # training data
+testData  <- newdata2[-trainingRowIndex, ]   # test data
+```
+
+Now it’s possible to develop the model on the training data and use it to predict G on test data.
+
+```{r}
+modTrain <- lm(G ~ Sh, data=trainingData)  # build the model
+predict <- predict(modTrain, testData)  # predicted values
+summary(modTrain)
+```
+
+The statistics in the summary show that the model is significant. R-Squared value calculated on training data is comparative to the original model built on full data.
+
+Now, taking into consideration the test data, the correlation between actuals values and predicted values can be used as a form of accuracy measure.
+
+
+```{r}
+act_pred <- data.frame(cbind(actuals=testData$G, predicteds=predict)) # actuals_predicteds 
+cor(act_pred) # correlation_accuracy
+```
+
+Correlation shows a high value of 89.2 %, so it means that actuals values and predicted values have similar directional movement.
+
+Here an overview of the first 10 rows of the new dataframe composed by actual values and predicted values:
+
+```{r}
+head(act_pred, n=10)
+```
+
+
+Actual values and predicted ones seem very close to each other. A good metric to see how much they are close is the min-max accuracy, that considers the average between the minimum and the maximum prediction.
+
+
+```{r}
+min_max <- mean(apply(act_pred, 1, min) / apply(act_pred, 1, max))  
+print(min_max) # show the result
+```
+
+The result of 0.65 is an okay value, and it means that the accuracy is decent.
+
+Note: ideally, result of 1 is for a nearly perfect prediction.
+
+
+
+##EXTRA METHOD
+
+
+Resampling method
+Resampling is based on drawing different samples of observations from a training set and repeatedly refitting a model on each sample. The goal is to estimate the variability and the robustness of a linear regression fit. Any difference allows to obtain additional information that would be not be available using once only the original training sample of observations.
+
+In the current case, it has been seen that the model predicts well on the 30% split (test data) of the dataset, and now it has to be ensured that it fits well also all the time on different subsets. There are many resampling methods; in the current document k-fold cross validation will be used.
+
+K-fold method randomly divides a set of observations into k random sample portions of approximately equal size. Keeping each portion as test data, the model is re-fit on the remaining (k-1) portions that are used to predict the deleted observations.
+
+Then, the test error is estimated by computing the average of the mean squared errors (for ‘k’ portions). In the current case, it has been set K=5(usually 3, 5, 7, 10 folds are used):
+
+```{r}
+install.packages("DAAG")
+library(DAAG)
+
+kfold <- CVlm(data = newdata2, form.lm = formula(G ~ Sh), m=5, 
+                   dots = FALSE, seed=123, legend.pos="topleft",
+                   main="Cross Validation; k=5",
+                   plotit=TRUE, printit=FALSE)
+```
+
+
+The graph shows that the lines don’t vary too much with respect to the slope and level and the points are not over dispersed for one particular color, that is for any one particular sample.
+
+The mean squared error measures how a regression line is close to a set of points:
+
+
+```{r}
+attr(kfold, 'ms')
+```
+
+The value of 19 is high, and it represents an eh accuracy result.
+
+Ideally, smaller the means squared error is, closer is the line of best fit.
+
+An Introduction to Statistical Learning with Applications in R, James G., Witten D., Hastie T., Tibshirani R., (Springer, 2013)
+
+Package 'DAAG', Maindonald J.H., John Braun W.J., (cran.r-project.org, September 2015)
+
+SAMPLE DIST
+
+```{r}
+ages <- nhl$Age
+mean(ages)
+
+hist(ages, col='coral', 
+     main='Ages of NHL Players', 
+     xlab='Age (yrs)', 
+     req=FALSE)
+```
+
+ 
+```{r}
+N=50; ##The number of people they ask before quitting
+mean(sample(heights, replace=FALSE, size=N)) ##the panic answer
+```
+
+
+```{r}
+sample.size<-50;
+store<-replicate(10000, mean(sample(heights, size=sample.size, replace=TRUE)))
+hist(store, col='coral', xlab='Sample mean', main='Distribution of Sample Means N=50')
+```
+
+```{r}
+ages.uniform <- runif(1200,min=20, max=30)
+hist(ages.uniform, col='lightblue', main='Uniform Population Distribution of Ages')
+
+mean(sample(ages.uniform, size=50))
+
+
+sample.size<-50;
+sample.uniform<-replicate(10000, mean(sample(ages.uniform, size=sample.size, replace=TRUE)))
+hist(sample.uniform, col='coral', xlab='Sample mean', main='Distribution of Sample Means for a Uniform Pop Dist N=50')
+```
