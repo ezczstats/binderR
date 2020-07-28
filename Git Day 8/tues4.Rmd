@@ -1,0 +1,313 @@
+
+```{r tues1, include=FALSE}
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(plotly)
+library(skimr)
+library(devtools)
+library(MASS)
+library(caret)
+library(pROC)
+library(PerformanceAnalytics)
+
+
+fifa <- read.csv("fifa.csv")
+```
+
+
+```{r tues2, include=FALSE}
+sample.size <- dim(fifa)[1]
+```
+`
+
+```{r thurs3, iniclude=FALSE}
+hist(fifa$Strength, col='coral', 
+     xlab='Strength',
+     main="FIFA Strength",
+     las=1)
+```
+
+```{r thurs4}
+mean(fifa$Strength,na.rm=TRUE)
+```
+
+
+
+```{r thurs5}
+second.study<-sample(fifa$Strength, 18207, replace=TRUE) 
+mean(second.study,na.rm=TRUE)
+```
+
+
+
+
+```{r thurs6}
+many.studies<-replicate(1000, mean(sample(fifa$Strength, 18207, replace=TRUE),na.rm=TRUE)) 
+
+hist(many.studies, col='coral', xlab='Strength', main='Strength') 
+```
+
+
+```{r thurs7}
+quantile(many.studies, c(0.025, 0.975))
+```
+
+
+```{r thurs8}
+many.median.studies<-replicate(1000, median(sample(fifa$Strength, 18207, replace=TRUE),na.rm=TRUE)) 
+quantile(many.median.studies, c(0.025, 0.975))
+```
+
+```{r thurs9}
+mean(fifa$Strength,na.rm=TRUE)
+sd(fifa$Strength,na.rm=TRUE)
+
+```
+
+
+```{r thurs10}
+t.test(fifa$Strength)
+```
+
+
+```{r thurs11}
+t.test(fifa$Strength, conf.level=0.99)
+```
+
+
+```{r thurs12}
+
+chart.Correlation(fifa[1:1000,55:75])
+```
+
+
+```{r thurs13}
+multi <- fifa%>%
+  filter(Nationality %in% c('Argentina','Portugal','Brazil'))%>%
+  select(Name,
+         Nationality,
+         SprintSpeed,
+         Agility,
+         Acceleration)
+
+chart.Correlation(multi%>%
+                    select(-c(Name,Nationality)))
+
+
+```
+
+```{r thurs14}
+mod=lm(SprintSpeed~Agility, data=multi)
+summary(mod)
+```
+
+
+```{r thurs15}
+par(mfrow=c(2,2))
+plot(mod)
+```
+
+```{r thurs16}
+multi%>%
+  ggplot(aes(x=Acceleration,y=SprintSpeed))+
+  geom_point(aes(col=Nationality))+
+  facet_wrap(~Nationality)
+
+
+```
+
+
+```{r thurs17}
+
+mrm1 <- lm(SprintSpeed~Acceleration+Agility, data=multi)
+summary(mrm1)
+
+mrm2 <- lm(SprintSpeed~Acceleration+as.factor(Nationality), data=multi)
+summary(mrm2)
+
+par(mfrow=c(2,2))
+plot(mrm1)
+par(mfrow=c(2,2))
+plot(mrm2)
+```
+
+
+
+```{r thurs18}
+mod.interact=lm(SprintSpeed~Acceleration+Nationality+Nationality:Acceleration, data=multi)
+summary(mod.interact)
+
+
+unique(fifa$Work.Rate)
+
+fifa%>%
+  group_by(Work.Rate)%>%
+  summarise(ct=length(Work.Rate))
+```
+
+```{r thurs19}
+logis <- fifa%>%
+  filter(Work.Rate %in% c("Low/ High","Low/ Medium"))%>%
+  select(Name,Work.Rate,SprintSpeed,Strength)
+
+
+logis%>%
+  ggplot(aes(x=SprintSpeed))+
+  geom_density(aes(fill=Work.Rate),alpha=.4)
+
+write.csv(logis,"logics.csv",row.names = FALSE)
+
+
+logis <- read.csv("logics.csv")
+levels(logis$Work.Rate) <- c("0","1")
+```
+
+
+```{r thurs20}
+logistic.fifa<-glm(Work.Rate~SprintSpeed, 
+                   data=logis, family=binomial(link="logit"))
+logistic.fifa$coefficients
+summary(logistic.fifa)
+
+t <- 0.590757-0.010008*74
+
+qq <- function(x){
+  t <- 0.590757-0.010008*x
+  exp(x)/(1+exp(x))
+}
+
+```
+
+
+```{r thurs21}
+library(MASS)
+ci1<-confint(logistic.fifa)
+```
+
+
+### Demo
+
+Data Inspection
+It is always a good idea to visualize our data before trying to build a model for it. For example, density plots are useful for identifying the distribution of the predictors relative to one another and to the response variable.
+
+```{r Data Inspection}
+logis%>%
+  ggplot(aes(x=SprintSpeed))+
+  geom_density(aes(fill=Work.Rate),alpha=.4)
+
+logis%>%
+  ggplot(aes(x=Strength))+
+  geom_density(aes(fill=Work.Rate),alpha=.4)
+```
+
+
+Observing that the distributions of "Medium/Medium" and "High/Hiigh" for Sprint Speed differ more than Strength.
+
+
+
+Logistic Regression Model Creation
+Although we could do more to inspect the data, let’s go ahead and create logistic regression model. To implement good modeling practices, we’ll create training and testing splits in an attempt to avoid under/over-fitting when performing regression.
+
+```{r Logistic Regression Model Creation}
+# Split into train/test splits first.
+set.seed(100)
+default_idx <- sample(nrow(logis), ceiling(nrow(logis) / 2))
+default_trn <-  logis[default_idx, ]
+default_tst <- logis[-default_idx, ]
+
+# Create the model.
+model_glm <- glm(Work.Rate ~ scale(SprintSpeed)+scale(Strength), data = default_trn, family = "binomial")
+```
+
+Creating a logistic regression model should look very similar to creating a linear regression model. However, instead of lm() we use glm(). Also, note that we must specify family = "binomial" for a binary classification context. (Actually, calling glm() with family = "gaussian" would be equivalent to lm().)
+
+Before making any predictions, let’s briefly examine the model with summary(). Among other things, it is important to see what coefficient values have been estimated for our model.
+
+
+```{r Summary}
+summary(model_glm)
+```
+
+
+Like the summary values calculated for a linear regression model, we get quantile information regarding residuals, as well significance estimates for our predictors. The interpretation of p-values in the logisitic regression framework is the same as that for linear regression models. (So the rule of “siginifcant” predictors being associated with p-values less than 5 % also holds.)
+
+However, note that we get a z value instead of a t value. Without getting too much into the theory regarding this difference, one should understand that this meaning of this value is analogous to that of a t value. 
+
+Also, note that we see Null deviance, AIC, and Number of Fisher Scoring iterations instead of Residual standard error, Multipe R-squared, Adjusted R-squared, and F-statistic.
+
+The logistic regression diagnostic values generated by the summary() call are typically not used directly to interpret the “goodness of fit” of a model.
+
+
+However, before looking more closely at model diagnostics that are more suitable for logistic regression, we should first understand how to use the predict() function with glm(). In order to return probabilities, we must specify type = "response". (The default setting is type = "link", which corresponds to the log odds value.)
+
+
+```{r Logistic Regression Model Prediction}
+head(sort(predict(model_glm, type = "response")))
+```
+
+As mentioned before, these predicted values are probabliliites, not classifications. We must “manually” convert the probabilities to classifications. Traditionally, a midpoint value such as 0.5 is used to “categorize” the probabilities. (This is actually equivalen to specifyng type = "link" and using a threshhold value of 0.)
+
+```{r}
+trn_pred <- ifelse(predict(model_glm, type = "response") > 0.5, "1", "0")
+```
+
+Probably the most common thing that is done to evaluate a classificiation models is to compare the actual response values with the predicted ones using a cross-table, which is often called a confusion matrix. This matrix can be generated with the base table() function.
+
+
+
+```{r}
+# Making predictions on the train set.
+trn_tab <- table(predicted = trn_pred, actual = default_trn$Work.Rate)
+trn_tab
+```
+
+
+```{r}
+tst_pred <- ifelse(predict(model_glm, newdata = default_tst, type = "response") > 0.5, "1", "0")
+tst_tab <- table(predicted = tst_pred, actual = default_tst$Work.Rate)
+tst_tab
+```
+
+
+```{r}
+calc_class_err <- function(actual, predicted) {
+  mean(actual != predicted)
+}
+```
+
+Perhaps unsurprisingly, the most common metrics for evaluating logistic regression models are error rate and accuracy (which is simply the additive inverse of the error rate). These metrics can be calculated directly from the confustion matrix.
+
+```{r}
+calc_class_err(actual = default_tst$Work.Rate, predicted = tst_pred)
+```
+
+Calculations of metrics such as sensitivity, specificity, and prevalance are derived from the confusion matrix. The importance of these (and other) metrics is dependent on the nature of the data (e.g. lower values may be acceptable if the data is deemed difficult to predict), as well as the tolerance for the type of misclassification. For example, we may want to bias our predictions for classifying defaults such that we are more likely to predict a default when one does not occur. We must carefully identify whether we want to prioritize sensitivity or specificity.
+
+We can get the values of sensitivity, specificity, prevalance, etc. easily for our predictions using the confusionMatrix() function from the caret package. 6
+
+```{r}
+
+confusionMatrix(trn_tab, positive = "1")
+
+```
+
+
+Now, let’s consider another metric, unrelated to the confusion matrix. Remember where we chose the value 0.5 as a threshhold for classification? How do we know that 0.5 value is the “optimal” value for accuracy. In reality, other cutoff values may be better (although 0.5 will tend to be the best value if all model assumptions are true and the saIn general, we would like the curve to “hug” the right and upper borders of the plot (indicating high sensitivity and specificity). The AUC (area under the curve) is used to quantify the visual profile of the ROC.Sample size is reasonably large).
+
+The ROC curve (receiver operating characteristic curve) illustrates the sensitivity and specificity for all possible cutoff values. We can use the roc() function from the pROC package to generate the ROC curve for our predictions.
+
+
+```{r}
+
+library(pROC)
+test_prob <- predict(model_glm, newdata = default_tst, type = "response")
+test_roc <- roc(default_tst$Work.Rate ~ test_prob, plot = TRUE, print.auc = TRUE)
+as.numeric(test_roc$auc)
+```
+
+In general, we would like the curve to “hug” the right and upper borders of the plot (indicating high sensitivity and specificity). The AUC (area under the curve) is used to quantify the visual profile of the ROC.
+
+
+
+
