@@ -22,9 +22,6 @@ install.packages("DT")
 install.packages("flexdashboard")
 install.packages("shiny")
 install.packages("shinydashboard")
-install.packages("rstan")
-install.packages("doMC")
-install.packages("nflfastR")
-install.packages("devtools")
-library(devtools)
-devtools::install_github(repo = "saiemgilani/cfbscrapR")
+
+
+
