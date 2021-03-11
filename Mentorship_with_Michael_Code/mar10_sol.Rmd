@@ -4,6 +4,7 @@ Read in the VB Player matches Data, NOTE we are already in the correct repositor
 
 
 ```{r q1sol}
+setwd("/home/jovyan/Mentorship_with_Michael_Code/Data")
 vb <- read.csv("vb_player_matches.csv")
 ```
 
@@ -107,6 +108,7 @@ metrics <- vb%>%
 Read in `performance_joined.csv` ... assign it to an object named `perform`
 
 ```{r q10sol}
+setwd("/home/jovyan/Mentorship_with_Michael_Code/Data")
 perform <- read.csv("performance_joined.csv")
 ```
 
